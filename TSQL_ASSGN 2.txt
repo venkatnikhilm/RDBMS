@@ -1,0 +1,97 @@
+TRANSACTION EXAMPLE
+CREATE PROCEDURE changeLoc
+AS
+BEGIN
+BEGIN TRANSACTION
+ UPDATE dept SET loc='LOS ANGELES' WHERE  deptno=50
+COMMIT TRANSACTION
+End
+EXEC changeLoc
+---------------------------------------------------------------
+CREATE TRIGGER trgInsteadOfUpdate ON emp
+INSTEAD OF UPDATE
+AS
+	DECLARE @empno int;
+	DECLARE @sal int;
+	DECLARE @cursal int;
+	SELECT @cursal=i.sal FROM deleted i
+	SELECT @sal=i.sal FROM inserted i;
+	SELECT @empno=i.empno FROM inserted i;
+
+	BEGIN
+		IF(@sal<@cursal)
+		BEGIN
+		RAISERROR ('Cannot update salary since it is less than present salary',16,1);
+		END
+		ELSE
+		BEGIN
+			UPDATE emp
+			SET sal=@sal
+			WHERE empno=@empno
+			PRINT 'Record Updated-Instead of Update Trigger'
+		END
+	END
+GO
+
+
+------------
+create trigger trgInsteadOfDeleteTuesday ON emp
+INSTEAD OF DELETE
+As
+	declare @empno int;
+	declare @day varchar(50);
+	SELECT @day=(
+  DATENAME(dw, CAST(DATEPART(m, GETDATE()) AS VARCHAR) + '/' + CAST(DATEPART(d, getdate()) AS VARCHAR) 
+  + '/' + CAST(DATEPART(yy, getdate()) AS VARCHAR)))
+	select @empno=d.empno from deleted d;
+	begin
+		if(@day='Tuesday')
+		begin
+			RAISERROR('Cannot delete this person as it is tuesday',16,1);
+		end
+		else
+		begin
+			delete from emp where empno=@empno;
+			PRINT 'Record Deleted -- Instead of Delete Trigger'
+		end
+	end
+go
+
+
+
+
+create trigger trgInsteadOfUpdate ON emp
+INSTEAD OF UPDATE
+As
+	declare @empNo int;
+	declare @salInsert int;
+	declare @salDelete int;
+	select @empNo=i.empno from inserted i;
+	select @salInsert=i.sal from inserted i;
+	select @salDelete=d.sal from deleted d;
+	begin
+		if(@salDelete>@salInsert)
+		begin
+			RAISERROR('Cannot update salary as this is lower than prev salary',16,1);
+		end
+		else
+		begin
+			update emp set sal=@salInsert where empno=@empno;
+			PRINT 'Record Updated -- Instead of Delete Trigger'
+		end
+	end
+go
+------------------------------------------------------------------------------
+Divide by zero error
+
+begin try
+	declare @num1 int
+	declare @num2 int
+	set @num1=1
+	set @num2=0
+	print @num1/@num2
+end try
+begin catch
+	print @@error
+	print error_message();
+end catch
